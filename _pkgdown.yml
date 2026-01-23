@@ -1,0 +1,112 @@
+url: https://zaoqu-liu.github.io/Connectome
+
+template:
+  bootstrap: 5
+  bootswatch: flatly
+  bslib:
+    primary: "#0054AD"
+    border-radius: 0.5rem
+    btn-border-radius: 0.25rem
+
+home:
+  title: "Connectome: Cell-Cell Communication Analysis"
+  description: >
+    Computational framework for inferring and analyzing cell-cell communication 
+    networks from single-cell RNA sequencing data.
+  sidebar:
+    structure: [links, license, community, citation, authors, dev]
+
+authors:
+  Zaoqu Liu:
+    href: https://github.com/Zaoqu-Liu
+  Micha Sam Brickman Raredon:
+    href: https://github.com/msraredon
+
+navbar:
+  structure:
+    left: [intro, reference, articles, news]
+    right: [search, github]
+  components:
+    intro:
+      text: Get Started
+      href: articles/introduction.html
+    articles:
+      text: Articles
+      menu:
+        - text: "Getting Started"
+        - text: Introduction to Connectome
+          href: articles/introduction.html
+        - text: "-------"
+        - text: "Theory & Methods"
+        - text: Algorithm Principles
+          href: articles/algorithm.html
+        - text: "-------"
+        - text: "Tutorials"
+        - text: Visualization Gallery
+          href: articles/visualization.html
+        - text: Differential Analysis
+          href: articles/differential-analysis.html
+        - text: "-------"
+        - text: "Reference"
+        - text: Best Practices
+          href: articles/best-practices.html
+
+reference:
+  - title: "Network Construction"
+    desc: "Functions for building cell-cell communication networks"
+    contents:
+      - CreateConnectome
+      - FilterConnectome
+      - SingleCellConnectome
+
+  - title: "Differential Analysis"
+    desc: "Functions for comparing networks between conditions"
+    contents:
+      - DifferentialConnectome
+      - EvenSplit
+
+  - title: "Network Visualization"
+    desc: "Functions for visualizing connectivity patterns"
+    contents:
+      - NetworkPlot
+      - CircosPlot
+      - CircosDiff
+      - EdgeDotPlot
+      - DiffEdgeDotPlot
+
+  - title: "Centrality Analysis"
+    desc: "Functions for network centrality analysis"
+    contents:
+      - Centrality
+      - CompareCentrality
+      - ModalDotPlot
+
+  - title: "Scatter Plots"
+    desc: "Functions for exploring specific interactions"
+    contents:
+      - SignalScatter
+      - CellCellScatter
+      - DifferentialScoringPlot
+
+  - title: "Data"
+    desc: "Built-in ligand-receptor databases"
+    contents:
+      - ncomms8866_human
+      - ncomms8866_mouse
+      - ncomms8866_rat
+      - ncomms8866_pig
+      - ncomms8866
+      - translator
+
+footer:
+  structure:
+    left: developed_by
+    right: built_with
+  components:
+    developed_by: >
+      Developed by [Zaoqu Liu](https://github.com/Zaoqu-Liu) 
+      and [Micha Sam Brickman Raredon](https://github.com/msraredon)
+
+news:
+  one_page: true
+  cran_dates: false

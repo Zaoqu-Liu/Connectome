@@ -1,4 +1,4 @@
-# Connectome <img src="man/figures/Big_Connectome.png" align="right" width="150"/>
+# Connectome <img src="man/figures/Big_Connectome.png" align="right" width="150" alt="Connectome logo"/>
 
 ## Computational Framework for Cell-Cell Communication Analysis in Single-Cell Transcriptomics
 
@@ -8,8 +8,6 @@
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/Zaoqu-Liu/Connectome)
 <!-- badges: end -->
-
----
 
 ## Overview
 
@@ -22,7 +20,7 @@ The analytical framework integrates:
 - **Network centrality analysis** using Kleinberg hub and authority scores
 - **Differential connectivity analysis** for comparative studies
 
----
+
 
 ## Citation
 
@@ -44,7 +42,7 @@ If you use Connectome in your research, please cite:
 }
 ```
 
----
+
 
 ## Installation
 
@@ -72,7 +70,7 @@ if (!requireNamespace("BiocManager", quietly = TRUE))
 BiocManager::install(c("circlize", "ComplexHeatmap"))
 ```
 
----
+
 
 ## Quick Start
 
@@ -107,7 +105,7 @@ NetworkPlot(connectome_filtered)
 CircosPlot(connectome_filtered)
 ```
 
----
+
 
 ## Core Functions
 
@@ -139,7 +137,6 @@ CircosPlot(connectome_filtered)
 | `ModalDotPlot()` | Mode-stratified centrality visualization |
 | `SignalScatter()` | Ligand-receptor co-expression scatter plot |
 
----
 ## Methodological Framework
 
 ### Edge Weight Computation
@@ -164,7 +161,7 @@ Gene specificity is quantified using the log-transformed Diagnostic Odds Ratio w
 
 $$\text{DOR} = \log\left(\frac{(TP + 0.5)(TN + 0.5)}{(FP + 0.5)(FN + 0.5)}\right)$$
 
----
+
 
 ## Supported Species
 
@@ -179,7 +176,7 @@ The package includes curated ligand-receptor databases from FANTOM5 for:
 
 Custom ligand-receptor databases can be supplied via the `custom.list` parameter.
 
----
+
 
 ## Integration with LIANA
 
@@ -190,7 +187,7 @@ library(liana)
 liana_res <- liana_wrap(sce, method = "connectome")
 ```
 
----
+
 
 ## System Requirements
 
@@ -199,13 +196,13 @@ liana_res <- liana_wrap(sce, method = "connectome")
 - **Memory**: Scales with dataset size; recommend 8+ GB RAM for large datasets
 - **Platform**: Cross-platform (macOS, Linux, Windows)
 
----
+
 
 ## License
 
 GPL-3.0 © 2022 Micha Sam Brickman Raredon, Zaoqu Liu
 
----
+
 
 ## References
 
@@ -215,7 +212,7 @@ GPL-3.0 © 2022 Micha Sam Brickman Raredon, Zaoqu Liu
 
 3. Raredon, M.S.B. *et al.* Single-cell connectomic analysis of adult mammalian lungs. *Science Advances* **5**(12), eaaw3851 (2019). [DOI: 10.1126/sciadv.aaw3851](https://doi.org/10.1126/sciadv.aaw3851)
 
----
+
 
 ## Contact
 

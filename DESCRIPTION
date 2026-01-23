@@ -19,7 +19,7 @@ LazyData: true
 LazyDataCompression: xz
 RoxygenNote: 7.3.3
 VignetteBuilder: knitr
-URL: https://github.com/Zaoqu-Liu/Connectome
+URL: https://zaoqu-liu.github.io/Connectome, https://github.com/Zaoqu-Liu/Connectome
 BugReports: https://github.com/Zaoqu-Liu/Connectome/issues
 Depends:
     R (>= 3.5.0)

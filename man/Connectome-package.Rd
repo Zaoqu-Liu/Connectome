@@ -11,6 +11,7 @@ A toolkit for exploring cell-cell connectivity patterns based on ligand and rece
 \seealso{
 Useful links:
 \itemize{
+  \item \url{https://zaoqu-liu.github.io/Connectome}
   \item \url{https://github.com/Zaoqu-Liu/Connectome}
   \item Report bugs at \url{https://github.com/Zaoqu-Liu/Connectome/issues}
 }

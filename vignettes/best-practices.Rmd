@@ -1,0 +1,365 @@
+---
+title: "Best Practices and Troubleshooting"
+author: "Zaoqu Liu"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Best Practices and Troubleshooting}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  warning = FALSE,
+  message = FALSE,
+  eval = FALSE
+)
+```
+
+## Data Preparation
+
+### Input Requirements
+
+Connectome requires a properly processed Seurat object:
+
+```{r requirements}
+library(Seurat)
+library(Connectome)
+
+# Check your object
+seurat_obj
+
+# Required slots
+Assays(seurat_obj)              # Should include "RNA"
+GetAssayData(seurat_obj, "data") # Normalized data
+GetAssayData(seurat_obj, "scale.data")  # Scaled data (optional but recommended)
+Idents(seurat_obj)              # Cell identities
+```
+
+### Preprocessing Checklist
+
+```{r preprocessing}
+# 1. Quality control (before Connectome)
+seurat_obj <- subset(seurat_obj, 
+                     nFeature_RNA > 200 & 
+                     nFeature_RNA < 5000 &
+                     percent.mt < 20)
+
+# 2. Normalize
+seurat_obj <- NormalizeData(seurat_obj)
+
+# 3. Scale (recommended for scaled edge weights)
+seurat_obj <- FindVariableFeatures(seurat_obj)
+seurat_obj <- ScaleData(seurat_obj)
+
+# 4. Set identities
+Idents(seurat_obj) <- "cell_type"  # Your cell type column
+```
+
+### Cell Type Considerations
+
+**Minimum cells per cluster:**
+```{r min-cells}
+# Check cell counts
+table(Idents(seurat_obj))
+
+# Recommended: at least 50-100 cells per cluster
+# Use min.cells.per.ident to exclude small populations
+connectome <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  min.cells.per.ident = 50
+)
+```
+
+**Cell type naming:**
+```{r naming}
+# Avoid special characters in cell type names
+# Good: "T_cell", "Macrophage_M1", "Epithelial"
+# Bad: "T cell", "Macrophage/Monocyte", "Epi (type 1)"
+
+# Fix naming issues
+levels(seurat_obj) <- gsub(" ", "_", levels(seurat_obj))
+levels(seurat_obj) <- gsub("/", "_", levels(seurat_obj))
+```
+
+## Parameter Optimization
+
+### CreateConnectome Parameters
+
+| Parameter | Default | Recommendation |
+|-----------|---------|----------------|
+| `min.cells.per.ident` | NULL | 50-100 for robust estimates |
+| `max.cells.per.ident` | NULL | 500-1000 for large datasets |
+| `p.values` | TRUE | FALSE for exploratory analysis |
+| `calculate.DOR` | FALSE | TRUE for specificity analysis |
+| `include.putative` | TRUE | FALSE for high-confidence only |
+
+```{r create-params}
+# Standard analysis
+connectome <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  min.cells.per.ident = 50,
+  p.values = TRUE,
+  include.putative = TRUE
+)
+
+# High-stringency analysis
+connectome_strict <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  min.cells.per.ident = 100,
+  p.values = TRUE,
+  include.putative = FALSE,  # Literature-supported only
+  calculate.DOR = TRUE
+)
+
+# Fast exploratory analysis
+connectome_fast <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  max.cells.per.ident = 500,  # Downsample
+  p.values = FALSE,
+  include.putative = TRUE
+)
+```
+
+### FilterConnectome Parameters
+
+| Parameter | Description | Typical Range |
+|-----------|-------------|---------------|
+| `min.pct` | Minimum expression fraction | 0.05 - 0.25 |
+| `min.z` | Minimum z-score | 0 - 1 |
+| `min.exp` | Minimum expression level | 0.1 - 0.5 |
+| `max.p` | Maximum adjusted p-value | 0.01 - 0.05 |
+| `min.DOR` | Minimum log-DOR | 0 - 2 |
+
+```{r filter-params}
+# Lenient filtering (discovery)
+conn_lenient <- FilterConnectome(
+  connectome,
+  min.pct = 0.05,
+  min.z = 0
+)
+
+# Standard filtering
+conn_standard <- FilterConnectome(
+  connectome,
+  min.pct = 0.1,
+  min.z = 0.25,
+  max.p = 0.05
+)
+
+# Stringent filtering (high confidence)
+conn_stringent <- FilterConnectome(
+  connectome,
+  min.pct = 0.2,
+  min.z = 0.5,
+  max.p = 0.01,
+  min.DOR = 1
+)
+```
+
+## Performance Optimization
+
+### Large Datasets
+
+```{r large-data}
+# Downsample before analysis
+connectome <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  max.cells.per.ident = 500,  # Downsample to 500 cells/cluster
+  p.values = FALSE             # Skip p-values for speed
+)
+
+# Check memory usage
+format(object.size(connectome), units = "MB")
+```
+
+### Parallel Processing
+
+```{r parallel}
+# For p-value calculation (requires future packages)
+connectome <- CreateConnectome(
+  seurat_obj,
+  species = "human",
+  p.values = TRUE,
+  parallel = TRUE,
+  n.cores = 4
+)
+```
+
+## Common Issues and Solutions
+
+### Issue 1: No edges after filtering
+
+```{r issue1}
+# Check raw connectome size
+nrow(connectome)
+
+# Check available values
+summary(connectome$percent.source)
+summary(connectome$ligand.scale)
+
+# Solution: Relax filtering parameters
+conn_filtered <- FilterConnectome(
+  connectome,
+  min.pct = 0.05,  # Lower threshold
+  min.z = -Inf     # Accept all z-scores
+)
+```
+
+### Issue 2: Missing cell types in visualization
+
+```{r issue2}
+# Check which cell types are in the connectome
+unique(c(connectome$source, connectome$target))
+
+# Solution: Use include.all.nodes in NetworkPlot
+NetworkPlot(connectome, include.all.nodes = TRUE)
+```
+
+### Issue 3: Memory errors
+
+```{r issue3}
+# Solution 1: Downsample
+seurat_small <- subset(seurat_obj, 
+                       cells = WhichCells(seurat_obj, downsample = 500))
+
+# Solution 2: Process in chunks
+cell_types <- unique(Idents(seurat_obj))
+conn_list <- list()
+for (i in seq_along(cell_types)) {
+  for (j in seq_along(cell_types)) {
+    # Process pairs individually
+  }
+}
+```
+
+### Issue 4: Species mismatch
+
+```{r issue4}
+# Check gene names
+head(rownames(seurat_obj))
+
+# For mouse data with human gene symbols
+# Use species = "human" if genes are in human format
+
+# For proper mouse symbols
+connectome <- CreateConnectome(seurat_obj, species = "mouse")
+```
+
+### Issue 5: Custom ligand-receptor database
+
+```{r issue5}
+# Create custom database
+my_lr_db <- data.frame(
+  ligand = c("MYL9", "VEGFA", "IL6"),
+  receptor = c("ITGA1", "KDR", "IL6R"),
+  mode = c("integrin", "growth_factor", "cytokine")
+)
+
+connectome <- CreateConnectome(
+  seurat_obj,
+  LR.database = "custom",
+  custom.list = my_lr_db
+)
+```
+
+## Quality Control
+
+### Sanity Checks
+
+```{r qc}
+# 1. Check connectome dimensions
+dim(connectome)
+# Expected: (n_celltypes^2 * n_lr_pairs) rows × ~15 columns
+
+# 2. Check for missing values
+sum(is.na(connectome$ligand.expression))
+sum(is.na(connectome$percent.source))
+
+# 3. Verify cell types
+setequal(
+  unique(c(connectome$source, connectome$target)),
+  unique(as.character(Idents(seurat_obj)))
+)
+
+# 4. Check expression distributions
+hist(connectome$ligand.expression, breaks = 50, main = "Ligand Expression")
+hist(connectome$ligand.scale, breaks = 50, main = "Ligand Z-scores")
+```
+
+### Biological Validation
+
+```{r validation}
+# Check known interactions
+known_interactions <- subset(
+  connectome,
+  (ligand == "VEGFA" & receptor == "KDR") |
+  (ligand == "IL6" & receptor == "IL6R") |
+  (ligand == "TNF" & receptor == "TNFRSF1A")
+)
+
+# These should have reasonable expression in relevant cell types
+print(known_interactions[, c("source", "target", "pair", 
+                             "ligand.expression", "recept.expression")])
+```
+
+## Reproducibility
+
+### Setting Seeds
+
+```{r seeds}
+# For downsampling reproducibility
+set.seed(42)
+seurat_obj <- subset(seurat_obj, 
+                     cells = WhichCells(seurat_obj, downsample = 500))
+
+set.seed(42)
+connectome <- CreateConnectome(seurat_obj, species = "human")
+```
+
+### Saving Results
+
+```{r saving}
+# Save connectome object
+saveRDS(connectome, "connectome_analysis.rds")
+
+# Export as CSV for external tools
+write.csv(connectome, "connectome_edges.csv", row.names = FALSE)
+
+# Save filtered version
+conn_filtered <- FilterConnectome(connectome, min.pct = 0.1, min.z = 0.25)
+write.csv(conn_filtered, "connectome_filtered.csv", row.names = FALSE)
+```
+
+### Session Documentation
+
+```{r session-doc}
+# Document analysis parameters
+analysis_params <- list(
+  date = Sys.Date(),
+  species = "human",
+  n_cells = ncol(seurat_obj),
+  n_clusters = length(unique(Idents(seurat_obj))),
+  filter_params = list(min.pct = 0.1, min.z = 0.25, max.p = 0.05),
+  n_edges_raw = nrow(connectome),
+  n_edges_filtered = nrow(conn_filtered)
+)
+saveRDS(analysis_params, "analysis_parameters.rds")
+```
+
+## Session Info
+
+```{r session, eval=TRUE}
+sessionInfo()
+```

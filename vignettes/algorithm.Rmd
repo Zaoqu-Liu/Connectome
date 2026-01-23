@@ -1,0 +1,215 @@
+---
+title: "Algorithm Principles and Mathematical Framework"
+author: "Zaoqu Liu"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Algorithm Principles and Mathematical Framework}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6,
+  warning = FALSE,
+  message = FALSE
+)
+```
+
+## Theoretical Foundation
+
+Connectome is built on the premise that cell-cell communication can be inferred from the co-expression patterns of ligand-receptor pairs across distinct cell populations. This document describes the mathematical framework underlying the analysis.
+
+## 1. Ligand-Receptor Database
+
+### FANTOM5 Database
+
+Connectome utilizes the FANTOM5 (Functional Annotation of the Mammalian Genome 5) ligand-receptor database, which provides curated pairs of interacting molecules:
+
+$$\mathcal{P} = \{(L_k, R_k, M_k)\}_{k=1}^{N}$$
+
+Where:
+- $L_k$: Ligand gene symbol
+- $R_k$: Receptor gene symbol  
+- $M_k$: Signaling mode/family classification
+- $N$: Total number of pairs (~2,557 for human)
+
+### Evidence Levels
+
+Pairs are classified by evidence strength:
+
+| Level | Description |
+|-------|-------------|
+| Literature supported | Experimentally validated interactions |
+| Putative | Computationally predicted interactions |
+
+## 2. Edge Weight Computation
+
+### Expression Metrics
+
+For each cell population $i$ and gene $g$:
+
+**Normalized Expression:**
+$$\bar{E}_{i,g} = \frac{1}{|C_i|} \sum_{c \in C_i} E_{c,g}$$
+
+**Scaled Expression (Z-score):**
+$$Z_{i,g} = \frac{\bar{E}_{i,g} - \mu_g}{\sigma_g}$$
+
+**Percent Expression:**
+$$P_{i,g} = \frac{|\{c \in C_i : E_{c,g} > 0\}|}{|C_i|}$$
+
+### Edge Weight Functions
+
+Given source population $i$, target population $j$, and ligand-receptor pair $(L, R)$:
+
+**Product (Default):**
+$$w_{ij}^{LR} = E_{i,L} \times E_{j,R}$$
+
+**Sum:**
+$$w_{ij}^{LR} = E_{i,L} + E_{j,R}$$
+
+**Mean:**
+$$w_{ij}^{LR} = \frac{E_{i,L} + E_{j,R}}{2}$$
+
+The product formulation captures the multiplicative nature of ligand-receptor binding kinetics.
+
+## 3. Statistical Testing
+
+### Wilcoxon Rank-Sum Test
+
+For each gene $g$ in cluster $i$, we test whether expression differs from background:
+
+$$H_0: \text{median}(E_{C_i,g}) = \text{median}(E_{C_{\backslash i},g})$$
+
+The test statistic:
+$$W = \sum_{c \in C_i} R_c$$
+
+Where $R_c$ is the rank of cell $c$ in the combined sample.
+
+### Multiple Testing Correction
+
+Adjusted p-values using Bonferroni correction:
+$$p_{adj} = \min(p \times m, 1)$$
+
+Where $m$ is the number of tests performed.
+
+## 4. Diagnostic Odds Ratio (DOR)
+
+The DOR quantifies gene specificity for a cell cluster using a 2×2 contingency table:
+
+|  | Expressing | Non-expressing |
+|--|-----------|----------------|
+| In cluster | TP | FN |
+| Out of cluster | FP | TN |
+
+### Standard DOR
+
+$$\text{DOR} = \frac{TP \times TN}{FP \times FN}$$
+
+### Haldane-Anscombe Correction
+
+To handle zero cells, we apply the Haldane-Anscombe correction with pseudocount $\epsilon = 0.5$:
+
+$$\text{DOR}_{corrected} = \frac{(TP + \epsilon)(TN + \epsilon)}{(FP + \epsilon)(FN + \epsilon)}$$
+
+Log-transformed for symmetry:
+$$\log(\text{DOR}) = \log(TP + \epsilon) + \log(TN + \epsilon) - \log(FP + \epsilon) - \log(FN + \epsilon)$$
+
+**Interpretation:**
+- $\log(\text{DOR}) > 0$: Gene is enriched in cluster
+- $\log(\text{DOR}) < 0$: Gene is depleted in cluster
+- $\log(\text{DOR}) = 0$: No association
+
+## 5. Network Centrality Analysis
+
+### Graph Construction
+
+The connectome is represented as a directed weighted graph:
+$$G = (V, E, w)$$
+
+Where:
+- $V$: Cell populations (nodes)
+- $E$: Signaling edges
+- $w$: Edge weights
+
+### Kleinberg's Hub and Authority Scores
+
+**Authority score** (receiving importance):
+$$a_i = \sum_{j \rightarrow i} w_{ji} \cdot h_j$$
+
+**Hub score** (sending importance):
+$$h_i = \sum_{i \rightarrow j} w_{ij} \cdot a_j$$
+
+These are computed iteratively until convergence:
+
+```
+Initialize: h = a = 1/√n
+Repeat until convergence:
+    a' = A^T · h
+    h' = A · a
+    Normalize a' and h'
+    a = a', h = h'
+```
+
+## 6. Differential Connectivity Analysis
+
+### Fold Change Computation
+
+For two conditions (reference and test):
+
+$$\text{LFC}_{ij}^{L} = \log_2\left(\frac{E_{i,L}^{test}}{E_{i,L}^{ref}}\right)$$
+
+$$\text{LFC}_{ij}^{R} = \log_2\left(\frac{E_{j,R}^{test}}{E_{j,R}^{ref}}\right)$$
+
+### Perturbation Score
+
+The overall perturbation score combines ligand and receptor changes:
+
+$$S_{ij}^{LR} = |\text{LFC}_{ij}^{L}| \times |\text{LFC}_{ij}^{R}|$$
+
+This captures edges where both components are differentially expressed.
+
+## 7. Implementation Details
+
+### Computational Complexity
+
+| Operation | Complexity |
+|-----------|------------|
+| Expression averaging | $O(n \times g)$ |
+| Edge construction | $O(k^2 \times p)$ |
+| P-value calculation | $O(k \times g \times n)$ |
+| Centrality analysis | $O(k^2 \times p)$ |
+
+Where:
+- $n$: Number of cells
+- $g$: Number of genes
+- $k$: Number of cell populations
+- $p$: Number of L-R pairs
+
+### Memory Efficiency
+
+Connectome uses:
+- `data.table` for efficient data manipulation
+- Sparse matrix operations via `Matrix` package
+- Pre-allocated vectors to avoid memory fragmentation
+
+## References
+
+1. **FANTOM5 Database**: Ramilowski, J.A. *et al.* A draft network of ligand–receptor-mediated multicellular signalling in human. *Nat Commun* 6, 7866 (2015).
+
+2. **Kleinberg Algorithm**: Kleinberg, J.M. Authoritative sources in a hyperlinked environment. *Journal of the ACM* 46(5), 604–632 (1999).
+
+3. **Haldane-Anscombe Correction**: Agresti, A. *Categorical Data Analysis*. Wiley, 3rd edition (2013).
+
+## Session Info
+
+```{r}
+sessionInfo()
+```

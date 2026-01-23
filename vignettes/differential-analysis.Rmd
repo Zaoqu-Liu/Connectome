@@ -1,0 +1,315 @@
+---
+title: "Differential Connectivity Analysis"
+author: "Zaoqu Liu"
+date: "`r Sys.Date()`"
+output: 
+  rmarkdown::html_vignette:
+    toc: true
+    toc_depth: 3
+vignette: >
+  %\VignetteIndexEntry{Differential Connectivity Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 6,
+  warning = FALSE,
+  message = FALSE,
+  eval = FALSE
+)
+```
+
+## Overview
+
+Differential connectivity analysis enables comparison of cell-cell communication networks between conditions (e.g., disease vs. healthy, treated vs. control). This vignette demonstrates the complete workflow for identifying altered signaling pathways.
+
+## Workflow
+
+```
+┌─────────────────┐     ┌─────────────────┐
+│   Condition 1   │     │   Condition 2   │
+│  (Reference)    │     │    (Test)       │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐
+│CreateConnectome │     │CreateConnectome │
+└────────┬────────┘     └────────┬────────┘
+         │                       │
+         └───────────┬───────────┘
+                     ▼
+         ┌───────────────────────┐
+         │DifferentialConnectome │
+         └───────────┬───────────┘
+                     │
+         ┌───────────┴───────────┐
+         ▼                       ▼
+┌─────────────────┐     ┌─────────────────┐
+│  Visualization  │     │   Statistics    │
+└─────────────────┘     └─────────────────┘
+```
+
+## Step 1: Prepare Data
+
+### Split by Condition
+
+```{r split-data}
+library(Seurat)
+library(Connectome)
+
+# Method 1: SplitObject
+seurat_list <- SplitObject(seurat_obj, split.by = "condition")
+seurat_ctrl <- seurat_list[["control"]]
+seurat_treat <- seurat_list[["treatment"]]
+
+# Method 2: EvenSplit (balanced sampling)
+seurat_list <- EvenSplit(seurat_obj, split.by = "condition")
+seurat_ctrl <- seurat_list[["control"]]
+seurat_treat <- seurat_list[["treatment"]]
+```
+
+### Why EvenSplit?
+
+`EvenSplit()` ensures each cell type has equal representation across conditions, preventing bias from unequal cell numbers:
+
+```{r evensplit-example}
+# Without EvenSplit: potential bias
+# Control: 1000 T cells, 500 B cells
+# Treatment: 200 T cells, 800 B cells
+
+# With EvenSplit: balanced
+# Control: 200 T cells, 500 B cells
+# Treatment: 200 T cells, 500 B cells
+```
+
+## Step 2: Create Individual Connectomes
+
+```{r create-connectomes}
+# Reference connectome (control)
+conn_ctrl <- CreateConnectome(
+  object = seurat_ctrl,
+  species = "human",
+  LR.database = "fantom5",
+  min.cells.per.ident = 30,
+  p.values = FALSE  # Optional for differential analysis
+)
+
+# Test connectome (treatment)
+conn_treat <- CreateConnectome(
+  object = seurat_treat,
+  species = "human",
+  LR.database = "fantom5",
+  min.cells.per.ident = 30,
+  p.values = FALSE
+)
+```
+
+**Important:** Both connectomes must have:
+- Same cell type identities
+- Same ligand-receptor pairs
+- Matching edge identifiers
+
+## Step 3: Compute Differential Connectome
+
+```{r differential}
+diff_conn <- DifferentialConnectome(
+  connect.ref = conn_ctrl,
+  connect.test = conn_treat,
+  min.pct = 0.1
+)
+```
+
+### Output Columns
+
+| Column | Description |
+|--------|-------------|
+| `ligand.norm.lfc` | Log2 fold change of ligand expression |
+| `recept.norm.lfc` | Log2 fold change of receptor expression |
+| `weight.norm.lfc` | Log2 fold change of edge weight |
+| `pct.source.1` | % source cells expressing ligand (reference) |
+| `pct.source.2` | % source cells expressing ligand (test) |
+| `pct.target.1` | % target cells expressing receptor (reference) |
+| `pct.target.2` | % target cells expressing receptor (test) |
+| `score` | Perturbation score = |ligand.lfc| × |recept.lfc| |
+
+## Step 4: Interpret Results
+
+### Perturbation Score
+
+The score captures edges where both ligand and receptor are differentially expressed:
+
+$$\text{Score} = |\log_2(\text{FC}_L)| \times |\log_2(\text{FC}_R)|$$
+
+- High score: Strong coordinated change
+- Score = 0: No change or unilateral change
+
+### Example Interpretation
+
+```{r interpret}
+# Top perturbed edges
+top_edges <- diff_conn[order(-diff_conn$score), ][1:20, ]
+
+# Upregulated signaling (both components increased)
+upregulated <- subset(diff_conn, 
+                      ligand.norm.lfc > 0 & recept.norm.lfc > 0 & score > 1)
+
+# Downregulated signaling (both components decreased)
+downregulated <- subset(diff_conn,
+                        ligand.norm.lfc < 0 & recept.norm.lfc < 0 & score > 1)
+
+# Rewired signaling (opposite direction changes)
+rewired <- subset(diff_conn,
+                  (ligand.norm.lfc > 0 & recept.norm.lfc < 0) |
+                  (ligand.norm.lfc < 0 & recept.norm.lfc > 0))
+```
+
+## Step 5: Visualization
+
+### Circos Diagram
+
+```{r circos-diff}
+CircosDiff(
+  diff_conn,
+  min.score = 1,
+  min.pct = 0.1,
+  sources.include = NULL,  # All sources
+  targets.include = NULL,  # All targets
+  title = "Differential Connectivity: Treatment vs Control"
+)
+```
+
+### Edge Dot Plot
+
+```{r edge-diff}
+DiffEdgeDotPlot(
+  diff_conn,
+  min.score = 0.5,
+  features = c("VEGFA", "IL6", "TNF", "CXCL12")
+)
+```
+
+### Scoring Heatmap
+
+```{r heatmap}
+# Unaligned view (separate ligand/receptor panels)
+DifferentialScoringPlot(
+  diff_conn,
+  min.score = 0.5,
+  aligned = FALSE
+)
+
+# Aligned view (edge-matched)
+DifferentialScoringPlot(
+  diff_conn,
+  sources.include = c("Fibroblast", "Macrophage"),
+  targets.include = c("Epithelial", "Endothelial"),
+  min.score = 0.5,
+  aligned = TRUE
+)
+```
+
+## Advanced Analysis
+
+### Mode-Specific Changes
+
+```{r mode-analysis}
+# Analyze by signaling mode
+modes <- unique(diff_conn$mode)
+mode_summary <- data.frame()
+
+for (m in modes) {
+  subset_m <- diff_conn[diff_conn$mode == m, ]
+  mode_summary <- rbind(mode_summary, data.frame(
+    mode = m,
+    n_edges = nrow(subset_m),
+    mean_score = mean(subset_m$score, na.rm = TRUE),
+    max_score = max(subset_m$score, na.rm = TRUE),
+    n_upregulated = sum(subset_m$ligand.norm.lfc > 0 & 
+                        subset_m$recept.norm.lfc > 0, na.rm = TRUE),
+    n_downregulated = sum(subset_m$ligand.norm.lfc < 0 & 
+                          subset_m$recept.norm.lfc < 0, na.rm = TRUE)
+  ))
+}
+
+# Sort by mean perturbation score
+mode_summary <- mode_summary[order(-mode_summary$mean_score), ]
+head(mode_summary, 10)
+```
+
+### Cell Type-Specific Changes
+
+```{r celltype-analysis}
+# Identify most affected cell types (as senders)
+sender_changes <- aggregate(score ~ source, data = diff_conn, 
+                           FUN = function(x) c(mean = mean(x), max = max(x)))
+
+# Identify most affected cell types (as receivers)
+receiver_changes <- aggregate(score ~ target, data = diff_conn,
+                             FUN = function(x) c(mean = mean(x), max = max(x)))
+```
+
+### Export Results
+
+```{r export}
+# Export significant differential edges
+sig_edges <- subset(diff_conn, score > 1)
+write.csv(sig_edges, "differential_edges.csv", row.names = FALSE)
+
+# Export for Cytoscape
+cytoscape_format <- diff_conn[, c("source", "target", "ligand", "receptor", 
+                                   "ligand.norm.lfc", "recept.norm.lfc", "score")]
+write.csv(cytoscape_format, "cytoscape_import.csv", row.names = FALSE)
+```
+
+## Best Practices
+
+### Sample Size
+
+- Minimum 30 cells per identity per condition
+- Use `EvenSplit()` for balanced comparisons
+- Consider bootstrapping for small samples
+
+### Filtering Strategy
+
+```{r filtering-strategy}
+# Stringent: High confidence changes
+high_conf <- subset(diff_conn,
+  score > 2 &
+  (pct.source.1 > 0.1 | pct.source.2 > 0.1) &
+  (pct.target.1 > 0.1 | pct.target.2 > 0.1)
+)
+
+# Discovery: Explore all potential changes
+discovery <- subset(diff_conn,
+  score > 0.5 &
+  (pct.source.1 > 0.05 | pct.source.2 > 0.05)
+)
+```
+
+### Handling Infinite Values
+
+When expression goes from 0 to positive (or vice versa), fold change is infinite. Connectome handles this automatically:
+
+```{r infinity}
+# Automatic handling in visualization functions
+CircosDiff(diff_conn, infinity.to.max = TRUE)
+DiffEdgeDotPlot(diff_conn, infinity.to.max = TRUE)
+```
+
+## Common Pitfalls
+
+1. **Batch effects**: Ensure conditions are not confounded with batches
+2. **Cell type composition**: Changes in cell proportions can affect results
+3. **Pseudoreplication**: Multiple samples from same individual should be aggregated
+4. **Multiple testing**: Consider adjusting score thresholds for genome-wide comparisons
+
+## Session Info
+
+```{r session, eval=TRUE}
+sessionInfo()
+```
