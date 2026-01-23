@@ -19,14 +19,52 @@ knitr::opts_chunk$set(
   fig.width = 8,
   fig.height = 6,
   warning = FALSE,
-  message = FALSE,
-  eval = FALSE
+  message = FALSE
 )
 ```
 
 ## Overview
 
-Connectome provides a comprehensive suite of visualization functions for exploring cell-cell communication networks. This gallery demonstrates each visualization type with example code and interpretation guidelines.
+Connectome provides a comprehensive suite of visualization functions for exploring cell-cell communication networks. This gallery demonstrates each visualization type with example outputs and interpretation guidelines.
+
+## Example Data Preparation
+
+All visualizations in this gallery use a mock connectome dataset for demonstration:
+
+```{r mock-data, eval=FALSE}
+library(Connectome)
+
+# Create mock connectome for demonstration
+set.seed(42)
+cell_types <- c("Epithelial", "Fibroblast", "Macrophage", "T_cell", "Endothelial")
+ligands <- c("VEGFA", "IL6", "TNF", "CXCL12", "FGF2", "TGFB1")
+receptors <- c("KDR", "IL6R", "TNFRSF1A", "CXCR4", "FGFR1", "TGFBR1")
+modes <- c("growth_factor", "cytokine", "cytokine", "chemokine", "growth_factor", "growth_factor")
+
+n_edges <- 150
+mock_connectome <- data.frame(
+  source = sample(cell_types, n_edges, replace = TRUE),
+  target = sample(cell_types, n_edges, replace = TRUE),
+  ligand = sample(ligands, n_edges, replace = TRUE),
+  receptor = sample(receptors, n_edges, replace = TRUE),
+  mode = sample(modes, n_edges, replace = TRUE),
+  ligand.expression = runif(n_edges, 0.5, 3),
+  recept.expression = runif(n_edges, 0.5, 3),
+  ligand.scale = rnorm(n_edges, 0, 1),
+  recept.scale = rnorm(n_edges, 0, 1),
+  percent.source = runif(n_edges, 0.1, 0.8),
+  percent.target = runif(n_edges, 0.1, 0.8),
+  weight_norm = runif(n_edges, 0.5, 5),
+  weight_sc = runif(n_edges, -2, 2)
+)
+mock_connectome$pair <- paste(mock_connectome$ligand, mock_connectome$receptor, sep = "_")
+mock_connectome$vector <- paste(mock_connectome$source, mock_connectome$target, sep = " - ")
+
+# Filter for visualization
+mock_filtered <- mock_connectome[mock_connectome$weight_norm > 2, ]
+```
+
+---
 
 ## Network Visualizations
 
@@ -34,252 +72,144 @@ Connectome provides a comprehensive suite of visualization functions for explori
 
 The `NetworkPlot()` function creates an igraph-based directed network visualization where nodes represent cell populations and edges represent signaling interactions.
 
-```{r network-plot}
-library(Connectome)
-
-# Basic network plot
-NetworkPlot(connectome_filtered)
-
-# Customized network plot
+```{r network-code, eval=FALSE}
 NetworkPlot(
   connectome_filtered,
-  weight.attribute = "weight_sc",
-  title = "Cell-Cell Communication Network",
-  layout = "circle",           # or "force.directed"
-  edge.label.cex = 0.5,
-  mar = 2
+  weight.attribute = "weight_norm",
+  title = "Cell-Cell Communication Network"
 )
+```
 
-# With custom colors
-cell_colors <- c("Epithelial" = "#E41A1C", 
-                 "Fibroblast" = "#377EB8",
-                 "Immune" = "#4DAF4A")
-NetworkPlot(connectome_filtered, cols.use = cell_colors)
+```{r network-plot, echo=FALSE, out.width="100%", fig.cap="Network plot showing cell-cell communication. Nodes represent cell types, edges represent signaling interactions, and edge width is proportional to interaction strength."}
+knitr::include_graphics("figures/network_plot.png")
 ```
 
 **Interpretation:**
-- Node size: Uniform (configurable)
-- Edge width: Proportional to edge weight
-- Edge color: Gradient from light to dark based on weight
-- Arrow direction: Source → Target
+
+- **Nodes**: Each node represents a cell population
+- **Edges**: Directed arrows indicate signaling direction (sender → receiver)
+- **Edge width**: Proportional to edge weight (interaction strength)
+- **Edge color**: Gradient from light to dark based on weight
+- **Layout**: Force-directed layout positions strongly connected nodes closer together
+
+---
 
 ### 2. CircosPlot
 
-Chord diagrams provide an elegant circular representation of connectivity patterns.
+Chord diagrams provide an elegant circular representation of connectivity patterns, ideal for visualizing complex multi-cellular communication networks.
 
-```{r circos-plot}
-# Basic circos plot
-CircosPlot(connectome_filtered)
-
-# Customized circos plot
+```{r circos-code, eval=FALSE}
 CircosPlot(
   connectome_filtered,
-  weight.attribute = "weight_sc",
-  lab.cex = 0.8,                    # Label size
-  small.gap = 1,                    # Gap between sectors
-  big.gap = 10,                     # Gap between source/target arcs
-  edge.color.by.source = TRUE,      # Color edges by sender
-  balanced.edges = TRUE             # Uniform edge thickness
+  weight.attribute = "weight_norm",
+  lab.cex = 0.8
 )
 ```
 
-**Features:**
-- Sectors represent ligands (top) and receptors (bottom)
-- Ribbons connect interacting pairs
-- Color indicates source cell type
-- Width proportional to interaction strength
-
-### 3. CircosDiff (Differential)
-
-Visualize differential connectivity between conditions.
-
-```{r circos-diff}
-# Create differential connectome first
-diff_conn <- DifferentialConnectome(
-  connect.ref = connectome_control,
-  connect.test = connectome_treatment
-)
-
-# Plot differential circos
-CircosDiff(
-  diff_conn,
-  min.score = 1,
-  min.pct = 0.1,
-  title = "Differential Connectivity"
-)
-```
-
-## Dot Plot Visualizations
-
-### 4. EdgeDotPlot
-
-Matrix visualization showing all edges meeting specified criteria.
-
-```{r edge-dotplot}
-# Basic edge dot plot
-EdgeDotPlot(connectome_filtered, min.z = 0.5)
-
-# Custom filtering
-EdgeDotPlot(
-  connectome,
-  min.pct = 0.2,
-  min.z = 0.5,
-  sources.include = c("Macrophage", "DC"),
-  modes.include = c("cytokine", "chemokine")
-)
-```
-
-**Reading the plot:**
-- X-axis: Cell-cell vectors (Source - Target)
-- Y-axis: Ligand-Receptor pairs
-- Dot size: log(weight_norm + 1)
-- Dot color: log(weight_sc + 1)
-
-### 5. DiffEdgeDotPlot
-
-Dot plot for differential analysis results.
-
-```{r diff-edge-dotplot}
-DiffEdgeDotPlot(
-  diff_conn,
-  min.score = 0.5,
-  min.pct = 0.1,
-  features = c("IL6", "TNF", "CXCL12")
-)
-```
-
-### 6. ModalDotPlot
-
-Signaling mode-organized centrality visualization.
-
-```{r modal-dotplot}
-ModalDotPlot(
-  connectome_filtered,
-  weight.attribute = "weight_sc",
-  normalize = TRUE
-)
+```{r circos-plot, echo=FALSE, out.width="100%", fig.cap="Circos plot showing ligand-receptor interactions. Sectors represent ligands (outer) and receptors (inner), with ribbons connecting interacting pairs."}
+knitr::include_graphics("figures/circos_plot.png")
 ```
 
 **Interpretation:**
-- Left panel: Outgoing (hub) centrality
-- Right panel: Incoming (authority) centrality
-- Dot size: Kleinberg score
-- X-axis: Edgeweight fraction per signaling family
+
+- **Sectors**: Represent ligands and receptors grouped by signaling mode
+- **Ribbons**: Connect ligand-receptor pairs with active interactions
+- **Ribbon width**: Proportional to interaction strength
+- **Colors**: Indicate source cell type or signaling mode
+
+---
+
+## Dot Plot Visualizations
+
+### 3. EdgeDotPlot
+
+Matrix visualization showing all edges meeting specified criteria, perfect for systematic comparison across cell-cell vectors.
+
+```{r edge-code, eval=FALSE}
+EdgeDotPlot(connectome_filtered)
+```
+
+```{r edge-dotplot, echo=FALSE, out.width="100%", fig.cap="Edge dot plot showing ligand-receptor pairs (y-axis) across cell-cell communication vectors (x-axis). Dot size represents normalized weight, color represents scaled weight."}
+knitr::include_graphics("figures/edge_dotplot.png")
+```
+
+**Reading the plot:**
+
+- **X-axis**: Cell-cell vectors (Source → Target)
+- **Y-axis**: Ligand-Receptor pairs
+- **Dot size**: log(weight_norm + 1) - larger dots indicate stronger interactions
+- **Dot color**: log(weight_sc + 1) - color intensity reflects z-scored expression
+
+---
 
 ## Centrality Analysis
 
-### 7. Centrality
+### 4. Centrality
 
-Hub and authority score analysis stratified by signaling mode.
+Hub and authority score analysis stratified by signaling mode, revealing which cell types are central senders or receivers in specific pathways.
 
-```{r centrality}
-# By signaling mode (default)
-Centrality(connectome_filtered, group.by = "mode")
-
-# By ligand
-Centrality(connectome_filtered, group.by = "ligand", normalize = TRUE)
-
-# By receptor
-Centrality(connectome_filtered, group.by = "receptor")
-
-# By mechanism (L-R pair)
-Centrality(connectome_filtered, group.by = "mechanism")
-```
-
-### 8. CompareCentrality
-
-Compare centrality across multiple conditions.
-
-```{r compare-centrality}
-# Create named list of connectomes
-conn_list <- list(
-  "Control" = connectome_ctrl,
-  "Treatment" = connectome_trt,
-  "Recovery" = connectome_rec
-)
-
-CompareCentrality(
-  conn_list,
-  weight.attribute = "weight_norm",
-  normalize = TRUE
+```{r centrality-code, eval=FALSE}
+Centrality(
+  connectome_filtered,
+  group.by = "mode",
+  weight.attribute = "weight_sc"
 )
 ```
+
+```{r centrality-plot, echo=FALSE, out.width="100%", fig.cap="Centrality analysis showing hub scores (sending importance, left) and authority scores (receiving importance, right) for each cell type across signaling modes."}
+knitr::include_graphics("figures/centrality_plot.png")
+```
+
+**Interpretation:**
+
+- **Hub score**: Measures importance as a signal sender
+- **Authority score**: Measures importance as a signal receiver
+- **Higher scores**: Indicate more central role in the signaling network
+- **Mode stratification**: Allows comparison across different signaling families
+
+---
 
 ## Scatter Plots
 
-### 9. SignalScatter
+### 5. SignalScatter
 
-Explore specific signaling mechanisms.
+Explore specific signaling mechanisms by visualizing ligand-receptor expression patterns across cell-cell vectors.
 
-```{r signal-scatter}
-# Focus on specific genes
+```{r scatter-code, eval=FALSE}
 SignalScatter(
   connectome_filtered,
-  features = c("VEGFA", "FGF2"),
-  weight.attribute = "weight_sc",
+  features = c("VEGFA", "IL6"),
+  weight.attribute = "weight_norm",
   label.threshold = 1.5
 )
 ```
 
+```{r signal-scatter, echo=FALSE, out.width="100%", fig.cap="Signal scatter plot showing expression patterns for selected ligands. Each point represents a cell-cell interaction vector, with position determined by ligand/receptor expression."}
+knitr::include_graphics("figures/signal_scatter.png")
+```
+
 **Plot elements:**
-- X-axis: Receptor expression (scaled)
-- Y-axis: Ligand expression (scaled)
-- Dot size: Edge weight
-- Color: Ligand-receptor pair
-- Labels: Cell-cell vectors above threshold
 
-### 10. CellCellScatter
+- **X-axis**: Receptor expression (scaled)
+- **Y-axis**: Ligand expression (scaled)
+- **Dot size**: Edge weight
+- **Color**: Different ligand-receptor pairs
+- **Labels**: Cell-cell vectors above threshold
 
-Detailed view of a specific cell-cell interaction vector.
-
-```{r cellcell-scatter}
-CellCellScatter(
-  connectome_filtered,
-  sources.include = "Fibroblast",
-  targets.include = "Epithelial",
-  label.threshold = 0.5
-)
-```
-
-## Differential Scoring Plots
-
-### 11. DifferentialScoringPlot
-
-Three-panel heatmap for differential analysis.
-
-```{r diff-scoring}
-DifferentialScoringPlot(
-  diff_conn,
-  sources.include = c("Macrophage", "Fibroblast"),
-  targets.include = c("Epithelial", "Endothelial"),
-  min.score = 0.5,
-  aligned = FALSE
-)
-
-# Aligned version (edge-matched rows/columns)
-DifferentialScoringPlot(
-  diff_conn,
-  min.score = 0.5,
-  aligned = TRUE
-)
-```
-
-**Panels:**
-1. Ligand log2 fold change
-2. Receptor log2 fold change
-3. Perturbation score (combined)
+---
 
 ## Customization Tips
 
 ### Color Palettes
 
-```{r colors}
+```{r colors, eval=FALSE}
 # Custom cell type colors
 my_colors <- c(
   "Epithelial" = "#E41A1C",
-  "Mesenchymal" = "#377EB8", 
-  "Immune" = "#4DAF4A",
-  "Endothelial" = "#984EA3"
+  "Fibroblast" = "#377EB8", 
+  "Macrophage" = "#4DAF4A",
+  "T_cell" = "#984EA3",
+  "Endothelial" = "#FF7F00"
 )
 
 NetworkPlot(connectome_filtered, cols.use = my_colors)
@@ -288,7 +218,7 @@ CircosPlot(connectome_filtered, cols.use = my_colors)
 
 ### Filtering Before Plotting
 
-```{r filtering}
+```{r filtering, eval=FALSE}
 # Filter to specific interactions
 conn_subset <- FilterConnectome(
   connectome,
@@ -315,6 +245,8 @@ CircosPlot(connectome_filtered)
 dev.off()
 ```
 
+---
+
 ## Visualization Selection Guide
 
 | Question | Recommended Plot |
@@ -322,14 +254,16 @@ dev.off()
 | Overall network topology | `NetworkPlot()` |
 | Circular connectivity view | `CircosPlot()` |
 | Edge details matrix | `EdgeDotPlot()` |
-| Centrality by signaling mode | `ModalDotPlot()`, `Centrality()` |
-| Compare conditions | `CompareCentrality()`, `CircosDiff()` |
+| Centrality by signaling mode | `Centrality()` |
 | Specific gene interactions | `SignalScatter()` |
 | Specific cell pair | `CellCellScatter()` |
+| Compare conditions | `CompareCentrality()`, `CircosDiff()` |
 | Differential analysis | `DiffEdgeDotPlot()`, `DifferentialScoringPlot()` |
+
+---
 
 ## Session Info
 
-```{r session, eval=TRUE}
+```{r session}
 sessionInfo()
 ```

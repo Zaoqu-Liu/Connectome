@@ -91,28 +91,47 @@ connectome <- CreateConnectome(
 connectome_filtered <- FilterConnectome(
   connectome,
   min.pct = 0.1,       # Minimum expression fraction
-
   min.z = 0.25,        # Minimum z-score
   max.p = 0.05         # Maximum adjusted p-value
 )
 ```
 
-### Visualize
+### Visualize Results
 
-```{r eval=FALSE}
-# Network plot
+#### Network Plot
+
+```{r network-example, eval=FALSE}
 NetworkPlot(connectome_filtered)
+```
 
-# Circos plot
+```{r show-network, echo=FALSE, out.width="100%", fig.cap="Example network plot showing cell-cell communication topology."}
+knitr::include_graphics("figures/network_plot.png")
+```
+
+#### Circos Plot
+
+```{r circos-example, eval=FALSE}
 CircosPlot(connectome_filtered)
+```
 
-# Centrality analysis
+```{r show-circos, echo=FALSE, out.width="100%", fig.cap="Example circos plot showing ligand-receptor interactions."}
+knitr::include_graphics("figures/circos_plot.png")
+```
+
+#### Centrality Analysis
+
+```{r centrality-example, eval=FALSE}
 Centrality(connectome_filtered)
+```
+
+```{r show-centrality, echo=FALSE, out.width="100%", fig.cap="Example centrality analysis showing hub and authority scores."}
+knitr::include_graphics("figures/centrality_plot.png")
 ```
 
 ## Understanding the Output
 
 The connectome is a data.frame where each row represents a potential signaling edge:
+
 | Column | Description |
 |--------|-------------|
 | `source` | Sending cell population |
@@ -131,6 +150,48 @@ The connectome is a data.frame where each row represents a potential signaling e
 | `weight_sc` | Edge weight (scaled expression) |
 | `p_val_adj.lig` | Adjusted p-value for ligand |
 | `p_val_adj.rec` | Adjusted p-value for receptor |
+
+## Workflow Summary
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                     Seurat Object                            │
+│  (Normalized + Scaled + Cell Type Labels)                    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│               CreateConnectome()                             │
+│  • Extract expression matrices                               │
+│  • Match ligand-receptor pairs from FANTOM5                  │
+│  • Calculate edge weights                                    │
+│  • Compute statistical significance (optional)               │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│               FilterConnectome()                             │
+│  • Apply expression thresholds                               │
+│  • Filter by significance                                    │
+│  • Select signaling modes                                    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌─────────────────────┐  ┌─────────────────────┐
+│    Visualization    │  │      Analysis       │
+│  • NetworkPlot()    │  │  • Centrality()     │
+│  • CircosPlot()     │  │  • DOR()            │
+│  • EdgeDotPlot()    │  │  • Differential     │
+└─────────────────────┘  └─────────────────────┘
+```
+
+## Next Steps
+
+- **[Algorithm Principles](algorithm.html)**: Mathematical framework and theory
+- **[Visualization Gallery](visualization.html)**: Comprehensive visualization examples
+- **[Differential Analysis](differential-analysis.html)**: Compare conditions
+- **[Best Practices](best-practices.html)**: Troubleshooting and optimization
 
 ## Citation
 

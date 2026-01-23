@@ -173,44 +173,177 @@ conditions</li>
 <code class="sourceCode R"><span><span class="va">connectome_filtered</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/FilterConnectome.html">FilterConnectome</a></span><span class="op">(</span></span>
 <span>  <span class="va">connectome</span>,</span>
 <span>  min.pct <span class="op">=</span> <span class="fl">0.1</span>,       <span class="co"># Minimum expression fraction</span></span>
-<span></span>
 <span>  min.z <span class="op">=</span> <span class="fl">0.25</span>,        <span class="co"># Minimum z-score</span></span>
 <span>  max.p <span class="op">=</span> <span class="fl">0.05</span>         <span class="co"># Maximum adjusted p-value</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
-<h3 id="visualize">Visualize<a class="anchor" aria-label="anchor" href="#visualize"></a>
+<h3 id="visualize-results">Visualize Results<a class="anchor" aria-label="anchor" href="#visualize-results"></a>
 </h3>
+<div class="section level4">
+<h4 id="network-plot">Network Plot<a class="anchor" aria-label="anchor" href="#network-plot"></a>
+</h4>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="co"># Network plot</span></span>
-<span><span class="fu"><a href="../reference/NetworkPlot.html">NetworkPlot</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Circos plot</span></span>
-<span><span class="fu"><a href="../reference/CircosPlot.html">CircosPlot</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span>
-<span></span>
-<span><span class="co"># Centrality analysis</span></span>
-<span><span class="fu"><a href="../reference/Centrality.html">Centrality</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/NetworkPlot.html">NetworkPlot</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="figures/network_plot.png" alt="Example network plot showing cell-cell communication topology." width="100%"><p class="caption">
+Example network plot showing cell-cell communication topology.
+</p>
+</div>
+</div>
+<div class="section level4">
+<h4 id="circos-plot">Circos Plot<a class="anchor" aria-label="anchor" href="#circos-plot"></a>
+</h4>
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/CircosPlot.html">CircosPlot</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="figures/circos_plot.png" alt="Example circos plot showing ligand-receptor interactions." width="100%"><p class="caption">
+Example circos plot showing ligand-receptor interactions.
+</p>
+</div>
+</div>
+<div class="section level4">
+<h4 id="centrality-analysis">Centrality Analysis<a class="anchor" aria-label="anchor" href="#centrality-analysis"></a>
+</h4>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/Centrality.html">Centrality</a></span><span class="op">(</span><span class="va">connectome_filtered</span><span class="op">)</span></span></code></pre></div>
+<div class="figure">
+<img src="figures/centrality_plot.png" alt="Example centrality analysis showing hub and authority scores." width="100%"><p class="caption">
+Example centrality analysis showing hub and authority scores.
+</p>
+</div>
+</div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="understanding-the-output">Understanding the Output<a class="anchor" aria-label="anchor" href="#understanding-the-output"></a>
 </h2>
 <p>The connectome is a data.frame where each row represents a potential
-signaling edge: | Column | Description | |——–|————-| |
-<code>source</code> | Sending cell population | | <code>target</code> |
-Receiving cell population | | <code>ligand</code> | Ligand gene symbol |
-| <code>receptor</code> | Receptor gene symbol | | <code>pair</code> |
-Ligand-Receptor pair identifier | | <code>mode</code> | Signaling
-family/category | | <code>ligand.expression</code> | Log-normalized
-ligand expression | | <code>recept.expression</code> | Log-normalized
-receptor expression | | <code>ligand.scale</code> | Z-scored ligand
-expression | | <code>recept.scale</code> | Z-scored receptor expression
-| | <code>percent.source</code> | Fraction of source cells expressing
-ligand | | <code>percent.target</code> | Fraction of target cells
-expressing receptor | | <code>weight_norm</code> | Edge weight
-(normalized expression) | | <code>weight_sc</code> | Edge weight (scaled
-expression) | | <code>p_val_adj.lig</code> | Adjusted p-value for ligand
-| | <code>p_val_adj.rec</code> | Adjusted p-value for receptor |</p>
+signaling edge:</p>
+<table class="table">
+<thead><tr class="header">
+<th>Column</th>
+<th>Description</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>source</code></td>
+<td>Sending cell population</td>
+</tr>
+<tr class="even">
+<td><code>target</code></td>
+<td>Receiving cell population</td>
+</tr>
+<tr class="odd">
+<td><code>ligand</code></td>
+<td>Ligand gene symbol</td>
+</tr>
+<tr class="even">
+<td><code>receptor</code></td>
+<td>Receptor gene symbol</td>
+</tr>
+<tr class="odd">
+<td><code>pair</code></td>
+<td>Ligand-Receptor pair identifier</td>
+</tr>
+<tr class="even">
+<td><code>mode</code></td>
+<td>Signaling family/category</td>
+</tr>
+<tr class="odd">
+<td><code>ligand.expression</code></td>
+<td>Log-normalized ligand expression</td>
+</tr>
+<tr class="even">
+<td><code>recept.expression</code></td>
+<td>Log-normalized receptor expression</td>
+</tr>
+<tr class="odd">
+<td><code>ligand.scale</code></td>
+<td>Z-scored ligand expression</td>
+</tr>
+<tr class="even">
+<td><code>recept.scale</code></td>
+<td>Z-scored receptor expression</td>
+</tr>
+<tr class="odd">
+<td><code>percent.source</code></td>
+<td>Fraction of source cells expressing ligand</td>
+</tr>
+<tr class="even">
+<td><code>percent.target</code></td>
+<td>Fraction of target cells expressing receptor</td>
+</tr>
+<tr class="odd">
+<td><code>weight_norm</code></td>
+<td>Edge weight (normalized expression)</td>
+</tr>
+<tr class="even">
+<td><code>weight_sc</code></td>
+<td>Edge weight (scaled expression)</td>
+</tr>
+<tr class="odd">
+<td><code>p_val_adj.lig</code></td>
+<td>Adjusted p-value for ligand</td>
+</tr>
+<tr class="even">
+<td><code>p_val_adj.rec</code></td>
+<td>Adjusted p-value for receptor</td>
+</tr>
+</tbody>
+</table>
+</div>
+<div class="section level2">
+<h2 id="workflow-summary">Workflow Summary<a class="anchor" aria-label="anchor" href="#workflow-summary"></a>
+</h2>
+<pre><code>┌─────────────────────────────────────────────────────────────┐
+│                     Seurat Object                            │
+│  (Normalized + Scaled + Cell Type Labels)                    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│               CreateConnectome()                             │
+│  • Extract expression matrices                               │
+│  • Match ligand-receptor pairs from FANTOM5                  │
+│  • Calculate edge weights                                    │
+│  • Compute statistical significance (optional)               │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+                      ▼
+┌─────────────────────────────────────────────────────────────┐
+│               FilterConnectome()                             │
+│  • Apply expression thresholds                               │
+│  • Filter by significance                                    │
+│  • Select signaling modes                                    │
+└─────────────────────┬───────────────────────────────────────┘
+                      │
+          ┌───────────┴───────────┐
+          ▼                       ▼
+┌─────────────────────┐  ┌─────────────────────┐
+│    Visualization    │  │      Analysis       │
+│  • NetworkPlot()    │  │  • Centrality()     │
+│  • CircosPlot()     │  │  • DOR()            │
+│  • EdgeDotPlot()    │  │  • Differential     │
+└─────────────────────┘  └─────────────────────┘</code></pre>
+</div>
+<div class="section level2">
+<h2 id="next-steps">Next Steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
+</h2>
+<ul>
+<li>
+<strong><a href="algorithm.html">Algorithm Principles</a></strong>:
+Mathematical framework and theory</li>
+<li>
+<strong><a href="visualization.html">Visualization
+Gallery</a></strong>: Comprehensive visualization examples</li>
+<li>
+<strong><a href="differential-analysis.html">Differential
+Analysis</a></strong>: Compare conditions</li>
+<li>
+<strong><a href="best-practices.html">Best Practices</a></strong>:
+Troubleshooting and optimization</li>
+</ul>
 </div>
 <div class="section level2">
 <h2 id="citation">Citation<a class="anchor" aria-label="anchor" href="#citation"></a>
@@ -226,7 +359,7 @@ systems data using Connectome. <em>Scientific Reports</em>
 <div class="section level2">
 <h2 id="session-info">Session Info<a class="anchor" aria-label="anchor" href="#session-info"></a>
 </h2>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/sessionInfo.html" class="external-link">sessionInfo</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="co">#&gt; R version 4.4.0 (2024-04-24)</span></span>
 <span><span class="co">#&gt; Platform: aarch64-apple-darwin20</span></span>
