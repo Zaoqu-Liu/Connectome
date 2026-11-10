@@ -4,7 +4,6 @@
 
 <!-- badges: start -->
 [![R-universe](https://zaoqu-liu.r-universe.dev/badges/Connectome)](https://zaoqu-liu.r-universe.dev/Connectome)
-[![CRAN status](https://www.r-pkg.org/badges/version/Connectome)](https://CRAN.R-project.org/package=Connectome)
 [![License: GPL v3](https://img.shields.io/badge/License-GPLv3-blue.svg)](https://www.gnu.org/licenses/gpl-3.0)
 [![R-CMD-check](https://img.shields.io/badge/R--CMD--check-passing-brightgreen)](https://github.com/Zaoqu-Liu/Connectome)
 [![Documentation](https://img.shields.io/badge/docs-pkgdown-blue.svg)](https://zaoqu-liu.github.io/Connectome/)
